@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.leah.edg_touch.CustomLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/q_bg"
+    tools:context="com.example.leah.edg_touch.GameMasterScreen">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/tpb" />
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/btb"
+        android:layout_alignParentLeft="true" />
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:id="@+id/qspaceBg"
+        android:layout_centerVertical="true"
+        android:layout_above="@+id/getQuestion"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="@color/colorText"
+        android:id="@+id/questionSpace"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <com.example.leah.edg_touch.CustomButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Get Question"
+        android:id="@+id/getQuestion"
+        android:layout_above="@+id/btb"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:textColor="@color/colorText"
+        android:id="@+id/answersReceivedSpace"
+        android:layout_below="@+id/tpb"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="43dp" />
+
+</com.example.leah.edg_touch.CustomLayout>

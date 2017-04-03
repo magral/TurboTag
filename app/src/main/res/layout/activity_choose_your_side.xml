@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.leah.edg_touch.CustomLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/custom_layout_CYS"
+    tools:context="com.example.leah.edg_touch.ChooseYourSide">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/tp" />
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/bt"
+        android:layout_alignParentLeft="true" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:gravity="center"
+        android:id="@+id/choosesidebanner"
+        android:layout_below="@+id/tp"
+        android:layout_centerHorizontal="true" />
+
+    <com.example.leah.edg_touch.CustomButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Game Master"
+        android:id="@+id/GameMaster"
+        android:layout_below="@+id/choosesidebanner"
+        android:layout_centerHorizontal="true" />
+
+    <com.example.leah.edg_touch.CustomButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Red Team"
+        android:id="@+id/RedTeam"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="39dp"
+        android:layout_marginStart="39dp"
+        android:layout_marginBottom="113dp" />
+
+    <com.example.leah.edg_touch.CustomButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Blue Team"
+        android:id="@+id/BlueTeam"
+        android:layout_alignTop="@+id/RedTeam"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="39dp"
+        android:layout_marginEnd="39dp" />
+
+</com.example.leah.edg_touch.CustomLayout>
