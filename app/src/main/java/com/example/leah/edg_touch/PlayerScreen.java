@@ -90,11 +90,11 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         setContentView(R.layout.activity_red_answer_screen);
         answerLayout = (LinearLayout) findViewById(R.id.buttonLayoutRed);
         //Load Images
-        bg = (CustomLayout) findViewById(R.id.redbg);
+        bg = (CustomLayout) findViewById(R.id.playerLayout);
         top = (ImageView) findViewById(R.id.top_border);
         bt = (ImageView) findViewById(R.id.bottom_border);
-        ansbg = (ImageView) findViewById(R.id.answerbgred);
-        //beam = (CustomButton) findViewById(R.id.sendRed);
+        ansbg = (ImageView) findViewById(R.id.playerBG);
+        beam = (CustomButton) findViewById(R.id.playerSubmit);
 
         rootView = findViewById(android.R.id.content).getRootView();
 
@@ -102,7 +102,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         Picasso.with(this).load(R.drawable.top_border).fit().into(top);
         Picasso.with(this).load(R.drawable.bottom_border).fit().into(bt);
         Picasso.with(this).load(R.drawable.question_answer_bg).fit().into(ansbg);
-        //Picasso.with(this).load(R.drawable.beam_send_button).into(beam);
+        Picasso.with(this).load(R.drawable.beam_send_button).into(beam);
         //NFC---------------------------------------------
         Intent intent = new Intent(getApplicationContext(), GameMasterScreen.class);
         intent.setAction(Intent.ACTION_MAIN);
