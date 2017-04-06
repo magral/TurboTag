@@ -51,7 +51,7 @@ public class GameMasterScreen extends AppCompatActivity {
     final private int MAX_QUESTIONS_IN_PACK = 10;
     NfcAdapter nfcAdapter;
 
-    private ArrayList<String> answersReceived = new ArrayList<String>();
+    private ArrayList<String> answersReceived = new ArrayList<>();
     private TextView answersReceivedSpace;
     private String[][] techListsArray;
 
@@ -65,17 +65,17 @@ public class GameMasterScreen extends AppCompatActivity {
     ConnectionDefinition connectionDefinition;
 
     ArrayList<String> answers;
-    Players players;
     private String submittedSide;
     private Socket socket;
     private InetAddress ip;
+    int id;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-
+        id = getIntent().getIntExtra("ID", 0);
         if(Build.VERSION.SDK_INT >= 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
@@ -132,19 +132,15 @@ public class GameMasterScreen extends AppCompatActivity {
         updateTextViews();
         //
         //Socketing
-        answers = new ArrayList<String>();
-        players = new Players();
-        System.out.println(socket);
+        answers = new ArrayList<>();
         socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args){
                 socket.emit("start game", socket);
             }
         });
-
+        socket.on("updateQuestionNumber", updateQuestionNumber);
         socket.on("get question", onGetQuestion);
-        socket.on("red side sent", onRedSideReceived);
-        socket.on("blue side sent", onBlueSideReceived);
         socket.connect();
         connectionDefinition = new ConnectionDefinition();
         questionSpace = (TextView) findViewById(R.id.questionSpace);
@@ -161,54 +157,15 @@ public class GameMasterScreen extends AppCompatActivity {
                 }
                 else{
                     socket.off("get question");
-                    socket.off("red side sent");
-                    socket.off("blue side sent");
                     socket.disconnect();
-                    int winner = Scoreboard.determineWinner();
-                    if(winner == 0){
-                        //TODO: Something with winnning side
-                        questionSpace.setText("RED SIDE WINNER");
-                    }
-                    else if(winner == 1){
-                        //TODO: Something with winning side
-                        questionSpace.setText("BLUE SIDE WINNER");
-                    }
-                    else{
-                        //TODO: Something on draw
-                        questionSpace.setText("DRAW....?");
+                    PlayerDefinition winner = Scoreboard.determineWinner();
+                    if(winner.getUserID() == id){
+                        System.out.println("This person won");
                     }
                 }
             }
         });
     }
-    /*
-    public String getLocalIpAddress() {
-        try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface
-                    .getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf
-                        .getInetAddresses(); enumIpAddr.hasMoreElements();) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-                    System.out.println("ip1--:" + inetAddress);
-                    System.out.println("ip2--:" + inetAddress.getHostAddress());
-
-                    // for getting IPV4 format
-                    if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
-
-                        String ip = inetAddress.getHostAddress().toString();
-                        System.out.println("ip---::" + ip);
-                        // return inetAddress.getHostAddress().toString();
-                        return ip;
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;
-    }
-*/
     //update text views
     private  void updateTextViews() {
         answersReceivedSpace.setText("Answer Received:\n");
@@ -249,23 +206,18 @@ public class GameMasterScreen extends AppCompatActivity {
 
                 //Add each sent message to an array
                 for (NdefRecord record:attachedRecords) {
-                    String string = new String(record.getPayload());
+                    String message = new String(record.getPayload());
                     //checking to make sure the package passed through refers to our application
-                    if (string.equals(getPackageName())) { continue; }
-                    answersReceivedSpace.setText(string);
-                    answersReceived.add(string);
-                    if(Scoreboard.compareAnswers(string) == 0){
-                        if(submittedSide == "RED"){
-                            Scoreboard.addRedTeamPoint(1);
-                            questionSpace.setText("Correct Answer!");
-                        }
-                        else{
-                            Scoreboard.addBlueTeamPoint(1);
-                            questionSpace.setText("Correct Answer!");
-                        }
+                    if (message.equals(getPackageName())) { continue; }
+                    String[] messages = message.split(",");
+                    String playerAnswer = messages[0];
+                    int playerID = Integer.parseInt(messages[1]);
+                    answersReceivedSpace.setText(playerAnswer);
+                    answersReceived.add(playerAnswer);
+                    if(Scoreboard.compareAnswers(playerAnswer) == 0){
+                        Scoreboard.AddPoint(playerID);
+                        Scoreboard.AddPoint(id);
                     }
-
-                    System.out.println("Red: " + Scoreboard.getRedTeamPoints() + " Blue: " + Scoreboard.getBlueTeamPoints());
                 }
                 Toast.makeText(this, "Received " + answersReceived.size() +
                         " Messages", Toast.LENGTH_LONG).show();
@@ -297,138 +249,6 @@ public class GameMasterScreen extends AppCompatActivity {
         nfcAdapter.disableForegroundDispatch(this);
     }
 
-    public void AssignAnswers(Players players, ArrayList<String> answers){
-        ArrayList<PlayerDefinition> redTeam = players.getPlayers();
-        ArrayList<PlayerDefinition> blueTeam = players.getPlayers();
-        Random randomGenerator = new Random();
-        int win;
-        ArrayList<String> answerList = new ArrayList<String>();
-        answerList.add(Scoreboard.getCurrentAnswer());
-        answerList.add(answers.get(0));
-        answerList.add(answers.get(1));
-        answerList.add(answers.get(2));
-        System.out.println("PRINTING ANSWER LIST:::::: " + answerList);
-        //answerList.add(answers.get(3));
-        //Assign Red team answers
-        if(redTeam.size() == 0) {
-            Toast.makeText(this, "Too little players to start a game", Toast.LENGTH_LONG).show();
-        }
-        else{
-            int index = 0;
-            for(int i = 0; i < answerList.size(); i++){
-                if(index >= redTeam.size()){
-                    index = 0;
-                }
-                System.out.println("CURRENT PLAYER ANSWER:::::::: " + redTeam.get(index).getAnswer());
-                redTeam.get(index).setAnswer(answerList.get(i));
-            }
-            /*
-            index = 0;
-            for(Iterator<String> i = answerList.iterator(); i.hasNext(); ){
-                if(index < blueTeam.size()){
-                    index = 0;
-                }
-                blueTeam.get(index).setAnswer(i.next());
-            }*/
-        }
-        /*
-        switch(redTeam.size()){
-            case 0:
-                System.out.println("Too little players to start a game");
-            case 1:
-                redTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                break;
-            case 2:
-                win = randomGenerator.nextInt(redTeam.size());
-                if(win == 0){
-                    redTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                    redTeam.get(1).setAnswer(answers.get(0));
-                }
-                else{
-                    redTeam.get(1).setAnswer(Scoreboard.getCurrentAnswer());
-                    redTeam.get(0).setAnswer(answers.get(0));
-                }
-                break;
-            case 3:
-                win = randomGenerator.nextInt(redTeam.size());
-                switch (win){
-                    case 0:
-                        redTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                        redTeam.get(1).setAnswer(answers.get(0));
-                        redTeam.get(2).setAnswer(answers.get(1));
-                        break;
-                    case 1:
-                        redTeam.get(0).setAnswer(answers.get(0));
-                        redTeam.get(1).setAnswer(Scoreboard.getCurrentAnswer());
-                        redTeam.get(2).setAnswer(answers.get(1));
-                        break;
-                    case 2:
-                        redTeam.get(0).setAnswer(answers.get(0));
-                        redTeam.get(1).setAnswer(answers.get(1));
-                        redTeam.get(2).setAnswer(Scoreboard.getCurrentAnswer());
-
-                }
-                break;
-            case 4:
-                win = randomGenerator.nextInt(redTeam.size());
-                redTeam.get(win).setAnswer(Scoreboard.getCurrentAnswer());
-                redTeam.remove(win);
-                for(int i = 0; i < redTeam.size(); i++){
-                    redTeam.get(i).setAnswer(answers.get(i));
-                }
-                break;
-            default:
-                System.out.println("Something caused a default in red team switch");
-        }
-        switch(blueTeam.size()) {
-            case 0:
-                throw new Error("Too little players to start a game: 0");
-            case 1:
-                blueTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                break;
-            case 2:
-                win = randomGenerator.nextInt(redTeam.size());
-                if (win == 0) {
-                    blueTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                    blueTeam.get(1).setAnswer(answers.get(0));
-                } else {
-                    blueTeam.get(1).setAnswer(Scoreboard.getCurrentAnswer());
-                    blueTeam.get(0).setAnswer(answers.get(0));
-                }
-                break;
-            case 3:
-                win = randomGenerator.nextInt(redTeam.size());
-                switch (win) {
-                    case 0:
-                        blueTeam.get(0).setAnswer(Scoreboard.getCurrentAnswer());
-                        blueTeam.get(1).setAnswer(answers.get(0));
-                        blueTeam.get(2).setAnswer(answers.get(1));
-                        break;
-                    case 1:
-                        blueTeam.get(0).setAnswer(answers.get(0));
-                        blueTeam.get(1).setAnswer(Scoreboard.getCurrentAnswer());
-                        blueTeam.get(2).setAnswer(answers.get(1));
-                        break;
-                    case 2:
-                        blueTeam.get(0).setAnswer(answers.get(0));
-                        blueTeam.get(1).setAnswer(answers.get(1));
-                        blueTeam.get(2).setAnswer(Scoreboard.getCurrentAnswer());
-
-                }
-                break;
-            case 4:
-                win = randomGenerator.nextInt(redTeam.size());
-                blueTeam.get(win).setAnswer(Scoreboard.getCurrentAnswer());
-                blueTeam.remove(win);
-                for (int i = 0; i < blueTeam.size(); i++) {
-                    blueTeam.get(i).setAnswer(answers.get(i));
-                }
-                break;
-            default:
-                System.out.println("Something caused a default in red team switch");
-        }*/
-    }
-
     public class GetQuestions extends AsyncTask<Integer, String, String> {
         String q;
         Integer n;
@@ -441,7 +261,7 @@ public class GameMasterScreen extends AppCompatActivity {
                     q = "Error connecting to SQL server";
                 }
                 else {
-                    String query = "SELECT Question FROM Questions Where AnswerID = " + params[0];
+                    String query = "SELECT Question FROM Questions Where QuestionNumber = " + params[0];
                     Statement stm = con.createStatement();
                     ResultSet rs = stm.executeQuery(query);
                     while(rs.next()){
@@ -473,21 +293,14 @@ public class GameMasterScreen extends AppCompatActivity {
                     throw new Error("SQL Connection error");
                 }
                 else {
-                    String query = "SELECT ID, TeamID FROM Users";
+                    String query = "SELECT ID FROM Users";
                     Statement statement = con.createStatement();
                     ResultSet rs = statement.executeQuery(query);
 
                     while(rs.next()){
                         int uid = rs.getInt("ID");
-                        int tid = rs.getInt("TeamID");
-                        PlayerDefinition p = new PlayerDefinition(uid, tid);
-                        if(tid == 1){
-                            players.addRedPlayer(p);
-                        }
-                        else{
-                            players.addBluePlayer(p);
-                        }
-                        players.addPlayer(p);
+                        PlayerDefinition p = new PlayerDefinition(uid);
+                        Scoreboard.addPlayer(p);
                     }
                 }
             } catch (SQLException e){
@@ -498,74 +311,11 @@ public class GameMasterScreen extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Integer p){
-            GetAnswers getAnswers = new GetAnswers();
-            getAnswers.execute(p);
+
         }
     }
 
-    public class GetAnswers extends AsyncTask<Integer, Void, Void> {
-        @Override
-        protected Void doInBackground(Integer... params){
-            try {
-                Connection conn = connectionDefinition.CONN();
-                if( conn == null){
-                    throw new Error("SQL Connection error");
-                }
-                else {
-                    String query = "SELECT Answer, Correct From Answers where AnswerID = " + params[0];
-                    Statement statement = conn.createStatement();
-                    ResultSet rs = statement.executeQuery(query);
-                    while(rs.next()){
-                        if(rs.getInt("Correct") == 1){
-                            Scoreboard.setCurrentAnswer(rs.getString("Answer"));
-                        }
-                        else{
-                            answers.add(rs.getString("Answer"));
-                        }
-                    }
-                }
-            } catch (SQLException e){
-                e.printStackTrace();
-            }
-            return null;
-        }
 
-        @Override
-        protected void onPostExecute(Void none){
-            AssignAnswers(players, answers);
-            FillAnswerData fillData = new FillAnswerData();
-            fillData.execute(players.getPlayers());
-        }
-    }
-
-    public class FillAnswerData extends AsyncTask<ArrayList<PlayerDefinition>, String, Void>{
-        @Override
-        protected Void doInBackground(ArrayList<PlayerDefinition>... params){
-            try{
-                Connection conn = connectionDefinition.CONN();
-                if( conn == null){
-                    throw new Error("SQL Connection error");
-                }
-                else {
-                    System.out.println("size params" + params[0].size());
-                    for (int i = 0; i < params[0].size(); i++) {
-                        System.out.println("Fill answer " + params[0].get(i).getAnswer());
-                        String query = "UPDATE Users SET AnswerData = isnull(AnswerData, '') + ('" + params[0].get(i).getAnswer() + "') WHERE ID = " + params[0].get(i).getUserID();
-                        //String query = "INSERT INTO Users (ID, TeamID, AnswerData) VALUES ('" + params[0].get(i).getUserID() + "', '" + params[0].get(i).getTeamID() + "', '" + params[0].get(i).getAnswer() + "');";
-                        System.out.println(query);
-                        Statement stm = conn.createStatement();
-                        stm.executeUpdate(query);
-                    }
-                    answers.clear();
-                    players.clear();
-                    socket.emit("activate player", true);
-                }
-            } catch (SQLException e){
-                e.printStackTrace();
-            }
-            return null;
-        }
-    }
     private Emitter.Listener onGetQuestion = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -579,19 +329,10 @@ public class GameMasterScreen extends AppCompatActivity {
             }
         }
     };
-
-    private Emitter.Listener onRedSideReceived = new Emitter.Listener() {
+    private Emitter.Listener updateQuestionNumber = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
-            submittedSide = "RED";
+            Scoreboard.advanceNextQuestion();
         }
     };
-
-    private Emitter.Listener onBlueSideReceived = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            submittedSide = "BLUE";
-        }
-    };
-
 }
