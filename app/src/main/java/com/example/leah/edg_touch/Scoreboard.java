@@ -6,17 +6,22 @@ import java.util.ArrayList;
 public final class Scoreboard {
     private static ArrayList<PlayerDefinition> players;
     private static int questionNumber;
+    private static int index;
     private static String currentAnswer;
+    private static int localID;
 
-    private Scoreboard(){
-        questionNumber = 1;
+    public Scoreboard(){
+        localID = 0;
+        questionNumber = 0;
         currentAnswer = "";
+        index = 0;
         players = new ArrayList<>();
     }
 
     public static void addPlayer(PlayerDefinition newPlayer){
         players.add(newPlayer);
     }
+    public static ArrayList<PlayerDefinition> getPlayers() {return players;}
 
     public static PlayerDefinition determineWinner(){
         PlayerDefinition winner = players.get(0);
@@ -43,6 +48,7 @@ public final class Scoreboard {
     public static String getCurrentAnswer(){
         return currentAnswer;
     }
+    public static void setCurrentAnswer(String ans) {currentAnswer = ans; }
     public static int compareAnswers(String ans){
         if(ans.equalsIgnoreCase(currentAnswer)){
             return 0;
@@ -62,5 +68,19 @@ public final class Scoreboard {
                 players.get(i).addPoint();
             }
         }
+    }
+
+    public static boolean isPlayersEmpty(){
+        return players.size()==0 ? true : false;
+    }
+
+    public static int getGMIndex() {return index; }
+    public static void updateGMIndex() { index++; }
+
+    public static void setLocalID(int id){
+        localID = id;
+    }
+    public static int getLocalID(){
+        return localID;
     }
 }

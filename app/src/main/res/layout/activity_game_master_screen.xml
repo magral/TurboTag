@@ -35,8 +35,8 @@
     <com.example.leah.edg_touch.CustomButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Get Question"
-        android:id="@+id/getQuestion"
+        android:text="Next Round"
+        android:id="@+id/NextRound"
         android:layout_above="@+id/btb"
         android:layout_centerHorizontal="true" />
 

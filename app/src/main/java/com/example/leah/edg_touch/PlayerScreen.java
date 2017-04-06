@@ -11,6 +11,7 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.nfc.tech.NfcA;
 import android.nfc.tech.NfcF;
+import android.os.AsyncTask;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
@@ -52,7 +53,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     //Connections
     TextView response;
     ConnectionDefinition connectionDefinition;
-    int ID;
+    int ID = Scoreboard.getLocalID();
     //----------------------------------
     //Image Loading
     CustomLayout bg;
@@ -62,7 +63,6 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     //View spaces
     View rootView;
     LinearLayout answerLayout;
-
     //----------------------------------
     // Socketing
     private Socket socket;
@@ -89,6 +89,10 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
                 e.printStackTrace();
             }
         }
+        if(Scoreboard.isPlayersEmpty()){
+            GetUsers gu = new GetUsers();
+            gu.execute();
+        }
         setContentView(R.layout.activity_red_answer_screen);
         answerLayout = (LinearLayout) findViewById(R.id.buttonLayoutRed);
         //Load Images
@@ -106,6 +110,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         Picasso.with(this).load(R.drawable.bottom_border).fit().into(bt);
         Picasso.with(this).load(R.drawable.question_answer_bg).fit().into(ansbg);
         Picasso.with(this).load(R.drawable.beam_send_button).into(beam);
+
         //NFC---------------------------------------------
         Intent intent = new Intent(getApplicationContext(), GameMasterScreen.class);
         intent.setAction(Intent.ACTION_MAIN);
@@ -130,9 +135,6 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             Toast.makeText(this, "NFC not available on this device",
                     Toast.LENGTH_SHORT).show();
         }
-        Intent idIntent = getIntent();
-        ID = idIntent.getIntExtra("ID", 0);
-        System.out.println(ID);
         nfcAdapter.setNdefPushMessageCallback(this, this);
 
         nfcAdapter.setOnNdefPushCompleteCallback(this, this);
@@ -146,7 +148,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             }
         });
 
-
+        socket.on("transferGameMAster", transferGameMaster);
         connectionDefinition = new ConnectionDefinition();
         response = (TextView) findViewById(R.id.answerRed);
         //socket.on("get question", onGetQuestion );
@@ -195,6 +197,37 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         }
     };
 */
+    public class GetUsers extends AsyncTask<Integer, Integer, Integer> {
+        @Override
+        protected Integer doInBackground(Integer... params){
+            Integer Answerid = params[0];
+            try {
+                Connection con = connectionDefinition.CONN();
+                if(con == null){
+                    throw new Error("SQL Connection error");
+                }
+                else {
+                    String query = "SELECT ID FROM Users";
+                    Statement statement = con.createStatement();
+                    ResultSet rs = statement.executeQuery(query);
+
+                    while(rs.next()){
+                        int uid = rs.getInt("ID");
+                        PlayerDefinition p = new PlayerDefinition(uid);
+                        Scoreboard.addPlayer(p);
+                    }
+                }
+            } catch (SQLException e){
+                e.printStackTrace();
+            }
+            return Answerid;
+        }
+
+        @Override
+        protected void onPostExecute(Integer p){
+
+        }
+    }
     View.OnClickListener customOnClickListener(final Button button, final String message)  {
         return new View.OnClickListener() {
             public void onClick(View v) {
@@ -302,7 +335,6 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
 
     @Override
     public void onResume() {
-        System.out.println("Resume");
         super.onResume();
         nfcAdapter.enableForegroundDispatch(this, pendingIntent, intentFiltersArray, techListsArray);
         handleNfcIntent(getIntent());
@@ -313,4 +345,17 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         super.onPause();
         nfcAdapter.disableForegroundDispatch(this);
     }
+
+    private Emitter.Listener transferGameMaster = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            if(Scoreboard.getPlayers().get(Scoreboard.getGMIndex()).getUserID() == ID) {
+                Scoreboard.updateGMIndex();
+                Scoreboard.advanceNextQuestion();
+                Intent newGM = new Intent(PlayerScreen.this, GameMasterScreen.class);
+                PlayerScreen.this.startActivity(newGM);
+            }
+        }
+    };
+
 }

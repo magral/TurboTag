@@ -30,13 +30,11 @@ public class ChooseYourSide extends AppCompatActivity {
     CustomButton create, join;
     ConnectionDefinition connectionClass;
     Intent startNewPlayer;
-    int iD;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_your_side);
-        if ((getIntent().getFlags() & Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT) != 0) {
-            System.out.println("On New Intent Called");
+        /*if ((getIntent().getFlags() & Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT) != 0) {
             Intent NfcIntent = getIntent();
             Parcelable[] receivedArray = NfcIntent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
             if (receivedArray != null) {
@@ -49,15 +47,13 @@ public class ChooseYourSide extends AppCompatActivity {
                     if (string.equals(getPackageName())) {
                         continue;
                     }
-                    System.out.println(string);
                 }
             } else {
-                System.out.println("ndef null");
                 Toast.makeText(this, "Received Blank Parcel", Toast.LENGTH_LONG).show();
             }
             finish();
             return;
-        }
+        }*/
 
         bg = (CustomLayout) findViewById(R.id.custom_layout_CYS);
         tp = (ImageView) findViewById(R.id.tp);
@@ -147,7 +143,7 @@ public class ChooseYourSide extends AppCompatActivity {
                     msg = "Error connecting to SQL server";
                 }
                 else {
-                    String query = "INSERT INTO Users (RoomNumber) VALUES (" + params[0]+ ")";
+                    String query = "INSERT INTO Users (RoomNumber, Score) VALUES (" + params[0]+ "," + 0 + ")";
                     Statement stm = con.createStatement();
                     stm.executeUpdate(query);
                     query = "SELECT TOP 1 * FROM Users ORDER BY ID DESC";
@@ -155,6 +151,7 @@ public class ChooseYourSide extends AppCompatActivity {
                     ResultSet rs = state.executeQuery(query);
                     while(rs.next()){
                         id = rs.getInt("ID");
+                        Scoreboard.setLocalID(id);
                     }
                 }
             } catch (SQLException e) {
@@ -166,7 +163,6 @@ public class ChooseYourSide extends AppCompatActivity {
         @Override
         protected void onPostExecute(Integer i){
             startNewPlayer = new Intent(ChooseYourSide.this, GameMasterScreen.class);
-            startNewPlayer.putExtra("ID",i);
             ChooseYourSide.this.startActivity(startNewPlayer);
         }
     }

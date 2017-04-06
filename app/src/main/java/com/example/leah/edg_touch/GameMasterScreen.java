@@ -15,6 +15,7 @@ import android.os.StrictMode;
 import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.annotation.RestrictTo;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -60,14 +61,13 @@ public class GameMasterScreen extends AppCompatActivity {
 
     TextView questionSpace;
     CustomButton getQuestion;
+    CustomButton nextRound;
     CustomLayout bg;
     ImageView tp, bt, qbg;
     ConnectionDefinition connectionDefinition;
 
     ArrayList<String> answers;
-    private String submittedSide;
     private Socket socket;
-    private InetAddress ip;
     int id;
 
 
@@ -75,17 +75,15 @@ public class GameMasterScreen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        id = getIntent().getIntExtra("ID", 0);
+        id = Scoreboard.getLocalID();
+        //Populate user list if no user list exists
+        if(Scoreboard.isPlayersEmpty()){
+            GetUsers gu = new GetUsers();
+            gu.execute();
+        }
         if(Build.VERSION.SDK_INT >= 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
-        }
-        {
-            try {
-                ip = InetAddress.getLocalHost();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            }
         }
         {
             try {
@@ -102,10 +100,13 @@ public class GameMasterScreen extends AppCompatActivity {
         tp = (ImageView) findViewById(R.id.tpb);
         bt = (ImageView) findViewById(R.id.btb);
         qbg = (ImageView) findViewById(R.id.qspaceBg);
+        nextRound = (CustomButton) findViewById(R.id.NextRound);
+        nextRound.setOnClickListener(nextRoundListener(nextRound));
         Picasso.with(this).load(R.drawable.question_answer_bg).fit().into(qbg);
         Picasso.with(this).load(R.drawable.top_border).fit().into(tp);
         Picasso.with(this).load(R.drawable.bottom_border).fit().into(bt);
         Picasso.with(this).load(R.drawable.title_bg).into(bg);
+        Picasso.with(this).load(R.drawable.beam_send_button);
 
         //NFC
         pendingIntent = PendingIntent.getActivity(
@@ -153,7 +154,6 @@ public class GameMasterScreen extends AppCompatActivity {
                 if(Scoreboard.getQuestionNumber() <= MAX_QUESTIONS_IN_PACK) {
                     GetQuestions get = new GetQuestions();
                     get.execute(packnum);
-
                 }
                 else{
                     socket.off("get question");
@@ -217,6 +217,7 @@ public class GameMasterScreen extends AppCompatActivity {
                     if(Scoreboard.compareAnswers(playerAnswer) == 0){
                         Scoreboard.AddPoint(playerID);
                         Scoreboard.AddPoint(id);
+                        Scoreboard.advanceNextQuestion();
                     }
                 }
                 Toast.makeText(this, "Received " + answersReceived.size() +
@@ -278,8 +279,53 @@ public class GameMasterScreen extends AppCompatActivity {
         @Override
         protected void onPostExecute(String m){
             questionSpace.setText(m);
-            GetUsers getUsers = new GetUsers();
-            getUsers.execute(n);
+            Scoreboard.setCurrentAnswer(m);
+            //GetUsers getUsers = new GetUsers();
+            //getUsers.execute(n);
+        }
+    }
+
+    public class UpdateScores extends AsyncTask<Integer, String, String> {
+        String q;
+        Integer n;
+        @Override
+        protected String doInBackground(Integer... params){
+            n = params[0];
+            try{
+                Connection con = connectionDefinition.CONN();
+                if(con == null){
+                    q = "Error connecting to SQL server";
+                }
+                else {
+                    String query = "UPDATE Question SET Score = Score + 1 WHERE id = " + params[0];
+                    Statement stm = con.createStatement();
+                    stm.executeQuery(query);
+                    if(Scoreboard.getQuestionNumber() >= 10) {
+                        String queryScores = "SELECT ID From Question Where Score = 10 ";
+                        Statement scoreStm = con.createStatement();
+                        ResultSet rs = scoreStm.executeQuery(queryScores);
+
+                        //Should only execute if a player has a winning score
+                        while (rs.next()) {
+                            int winnerId = Integer.parseInt(rs.getString("Question"));
+                            if(id == winnerId){
+                                System.out.println("I am the winner");
+                            }
+                        }}
+                    Scoreboard.advanceNextQuestion();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return q;
+        }
+
+        @Override
+        protected void onPostExecute(String m){
+            questionSpace.setText(m);
+            Scoreboard.setCurrentAnswer(m);
+            //GetUsers getUsers = new GetUsers();
+            //getUsers.execute(n);
         }
     }
 
@@ -329,10 +375,27 @@ public class GameMasterScreen extends AppCompatActivity {
             }
         }
     };
+
     private Emitter.Listener updateQuestionNumber = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
             Scoreboard.advanceNextQuestion();
         }
     };
+
+    private void StartNextRound(){
+        Scoreboard.updateGMIndex();
+        Intent newPlayer = new Intent(GameMasterScreen.this, PlayerScreen.class);
+        newPlayer.putExtra("ID", id);
+        GameMasterScreen.this.startActivity(newPlayer);
+    }
+    //Onclick to start next round
+    //In future this should be disabled unless round is over
+    View.OnClickListener nextRoundListener(final Button button)  {
+        return new View.OnClickListener() {
+            public void onClick(View v) {
+                StartNextRound();
+            }
+        };
+    }
 }
