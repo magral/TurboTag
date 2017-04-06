@@ -1,47 +1,31 @@
 package com.example.leah.edg_touch;
 
 
+import java.util.ArrayList;
+
 public final class Scoreboard {
-    private static int redTeamPoints;
-    private static int blueTeamPoints;
+    private static ArrayList<PlayerDefinition> players;
     private static int questionNumber;
-    private static int answerNumber;
     private static String currentAnswer;
 
     private Scoreboard(){
-        redTeamPoints = 0;
-        blueTeamPoints = 0;
         questionNumber = 1;
-        answerNumber = 1;
         currentAnswer = "";
+        players = new ArrayList<>();
     }
 
-    public static void addRedTeamPoint(int point){
-        redTeamPoints += point;
+    public static void addPlayer(PlayerDefinition newPlayer){
+        players.add(newPlayer);
     }
 
-    public static void addBlueTeamPoint(int point){
-        blueTeamPoints += point;
-    }
-
-    public static int getRedTeamPoints(){
-        return redTeamPoints;
-    }
-
-    public static int getBlueTeamPoints(){
-        return blueTeamPoints;
-    }
-
-    public static int determineWinner(){
-        if(redTeamPoints > blueTeamPoints){
-            return 0;
+    public static PlayerDefinition determineWinner(){
+        PlayerDefinition winner = players.get(0);
+        for(int i = 0; i < players.size() - 1; i++) {
+            if (players.get(i + 1).getPoints() > players.get(i).getPoints()) {
+                winner = players.get(i + 1);
+            }
         }
-        else if(blueTeamPoints > redTeamPoints){
-            return 1;
-        }
-        else {
-            return 2;
-        }
+        return winner;
     }
 
     public static void setQuestionNumber(int qn){
@@ -50,10 +34,6 @@ public final class Scoreboard {
 
     public static int getQuestionNumber(){
         return questionNumber;
-    }
-
-    public static void setCurrentAnswer(String a){
-        currentAnswer = a;
     }
 
     public static int advanceNextQuestion(){
@@ -69,6 +49,18 @@ public final class Scoreboard {
         }
         else{
             return -1;
+        }
+    }
+
+    public static void clearPlayers(){
+        players.clear();
+    }
+
+    public static void AddPoint(int id){
+        for(int i = 0; i < players.size(); i++){
+            if(players.get(i).getUserID() == id){
+                players.get(i).addPoint();
+            }
         }
     }
 }

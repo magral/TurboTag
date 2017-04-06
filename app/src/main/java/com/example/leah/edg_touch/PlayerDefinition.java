@@ -3,27 +3,17 @@ package com.example.leah.edg_touch;
 
 public class PlayerDefinition {
     private int userID;
-    private int teamID;
+    private int points;
     private String answer;
 
-    public PlayerDefinition(int uid, int tID){
+    public PlayerDefinition(int uid){
         userID = uid;
-        teamID = tID;
+        points = 0;
         answer = "";
-    }
-
-    public PlayerDefinition(int uid, int tID, String ans){
-        userID = uid;
-        teamID = tID;
-        answer = ans;
     }
 
     public int getUserID(){
         return userID;
-    }
-
-    public int getTeamID(){
-        return teamID;
     }
 
     public void setAnswer( String ans){
@@ -32,6 +22,14 @@ public class PlayerDefinition {
 
     public String getAnswer(){
         return answer;
+    }
+
+    public void addPoint(){
+        points++;
+    }
+
+    public int getPoints(){
+        return points;
     }
 
 

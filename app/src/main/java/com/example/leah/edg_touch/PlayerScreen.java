@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -57,6 +58,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     CustomLayout bg;
     CustomButton beam;
     ImageView top, bt, ansbg;
+    EditText pInput;
     //View spaces
     View rootView;
     LinearLayout answerLayout;
@@ -95,6 +97,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         bt = (ImageView) findViewById(R.id.bottom_border);
         ansbg = (ImageView) findViewById(R.id.playerBG);
         beam = (CustomButton) findViewById(R.id.playerSubmit);
+        pInput = (EditText) findViewById(R.id.playerInput);
 
         rootView = findViewById(android.R.id.content).getRootView();
 
@@ -146,11 +149,12 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
 
         connectionDefinition = new ConnectionDefinition();
         response = (TextView) findViewById(R.id.answerRed);
-        socket.on("get question", onGetQuestion );
+        //socket.on("get question", onGetQuestion );
         socket.connect();
+        beam.setOnClickListener(customOnClickListener(beam, pInput.getText().toString()));
     }
 
-    private Emitter.Listener onGetQuestion = new Emitter.Listener() {
+    /*private Emitter.Listener onGetQuestion = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
             try{
@@ -190,7 +194,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             }
         }
     };
-
+*/
     View.OnClickListener customOnClickListener(final Button button, final String message)  {
         return new View.OnClickListener() {
             public void onClick(View v) {
@@ -207,7 +211,6 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     }
 
     public void addMessage(View view, String newMessage) {
-        //String newMessage = response.getText().toString();
         messagesToSendArray.add(newMessage);
         Toast.makeText(this, "Added Message", Toast.LENGTH_LONG).show();
     }
@@ -241,7 +244,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             System.out.println("no messages in message to send array");
             return null;
         }
-        socket.emit("red side sent", true);
+        //socket.emit("player sent", true);
         NdefRecord[] recordsToAttach = createRecords();
         return new NdefMessage(recordsToAttach);
     }
@@ -251,7 +254,8 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         NdefRecord[] records = new NdefRecord[messagesToSendArray.size() + 1];
         for(int i = 0; i < messagesToSendArray.size(); i++){
             System.out.println(messagesToSendArray.get(i));
-            byte[] payload = messagesToSendArray.get(i).
+            String sendMessage = messagesToSendArray.get(i) + ", " + ID;
+            byte[] payload = sendMessage.
                     getBytes(Charset.forName("UTF-8"));
 
             NdefRecord record = NdefRecord.createMime("text/plain",payload);
@@ -282,8 +286,6 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
                     System.out.println(string);
                     messagesReceivedArray.add(string);
                 }
-                Toast.makeText(this, "Received " + messagesReceivedArray.size() +
-                        " Messages", Toast.LENGTH_LONG).show();
             }
             else {
                 System.out.println("ndef null");

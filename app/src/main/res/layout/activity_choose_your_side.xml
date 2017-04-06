@@ -29,32 +29,22 @@
     <com.example.leah.edg_touch.CustomButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Game Master"
-        android:id="@+id/GameMaster"
-        android:layout_below="@+id/choosesidebanner"
-        android:layout_centerHorizontal="true" />
+        android:text="Create"
+        android:id="@+id/CreateRoom"
+        android:layout_below="@+id/tp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp" />
 
     <com.example.leah.edg_touch.CustomButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Red Team"
-        android:id="@+id/RedTeam"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginLeft="39dp"
-        android:layout_marginStart="39dp"
-        android:layout_marginBottom="113dp" />
+        android:text="Join"
+        android:id="@+id/JoinRoom"
+        android:layout_below="@+id/CreateRoom"
+        android:layout_alignLeft="@+id/CreateRoom"
+        android:layout_alignStart="@+id/CreateRoom"
+        android:layout_marginTop="68dp" />
 
-    <com.example.leah.edg_touch.CustomButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Blue Team"
-        android:id="@+id/BlueTeam"
-        android:layout_alignTop="@+id/RedTeam"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginRight="39dp"
-        android:layout_marginEnd="39dp" />
+
 
 </com.example.leah.edg_touch.CustomLayout>

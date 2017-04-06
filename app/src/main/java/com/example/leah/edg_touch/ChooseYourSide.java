@@ -27,7 +27,7 @@ import java.sql.Statement;
 public class ChooseYourSide extends AppCompatActivity {
     CustomLayout bg;
     ImageView tp, bt, banner;
-    CustomButton gameMasterButt, redTeamButt, blueTeamButt;
+    CustomButton create, join;
     ConnectionDefinition connectionClass;
     Intent startNewPlayer;
     int iD;
@@ -63,57 +63,45 @@ public class ChooseYourSide extends AppCompatActivity {
         tp = (ImageView) findViewById(R.id.tp);
         bt = (ImageView) findViewById(R.id.bt);
         banner = (ImageView) findViewById(R.id.choosesidebanner);
-        gameMasterButt = (CustomButton) findViewById(R.id.GameMaster);
-        redTeamButt = (CustomButton) findViewById(R.id.RedTeam);
-        blueTeamButt = (CustomButton) findViewById(R.id.BlueTeam);
+        create = (CustomButton) findViewById(R.id.CreateRoom);
+        join = (CustomButton) findViewById(R.id.JoinRoom);
+
 
         Picasso.with(this).load(R.drawable.title_bg).into(bg);
         Picasso.with(this).load(R.drawable.top_border).fit().into(tp);
         Picasso.with(this).load(R.drawable.bottom_border).fit().into(bt);
         Picasso.with(this).load(R.drawable.chooseaside).fit().into(banner);
-        Picasso.with(this).load(R.drawable.questionpack_button).into(gameMasterButt);
-        Picasso.with(this).load(R.drawable.questionpack_button).into(redTeamButt);
-        Picasso.with(this).load(R.drawable.questionpack_button).into(blueTeamButt);
+        Picasso.with(this).load(R.drawable.questionpack_button).into(create);
+        Picasso.with(this).load(R.drawable.questionpack_button).into(join);
 
         connectionClass = new ConnectionDefinition();
 
-        final Integer redTeamID = 1;
-        final Integer blueTeamID = 2;
+        final Integer roomID = 1234;
 
-        //Create a game master
-        gameMasterButt.setOnClickListener(new View.OnClickListener() {
+        //Player creates a room
+        create.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 EraseOldMembers eraseOldMembers = new EraseOldMembers();
                 eraseOldMembers.execute();
-                Intent newGame = new Intent(ChooseYourSide.this, QuestionChoice.class);
-                ChooseYourSide.this.startActivity(newGame);
+                RegisterNewGameMaster register = new RegisterNewGameMaster();
+                register.execute(roomID);
             }
         });
 
-        //Create a red player
-        redTeamButt.setOnClickListener(new View.OnClickListener() {
+        //Player joins a room
+        join.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                RegisterNew register = new RegisterNew();
-                register.execute(redTeamID);
+                RegisterNewPlayer register = new RegisterNewPlayer();
+                register.execute(roomID);
             }
         });
 
-        //Create a blue player
-        blueTeamButt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent blueAct = new Intent(ChooseYourSide.this, BlueAnswerScreen.class);
-                RegisterNew reg = new RegisterNew();
-                reg.execute(blueTeamID);
-                ChooseYourSide.this.startActivity(blueAct);
-            }
-        });
     }
 
     //Registers a new player to the database
-    public class RegisterNew extends AsyncTask<Integer, Integer, Integer>{
+    public class RegisterNewPlayer extends AsyncTask<Integer, Integer, Integer>{
         String msg;
         @Override
         protected Integer doInBackground(Integer... params){
@@ -124,7 +112,7 @@ public class ChooseYourSide extends AppCompatActivity {
                     msg = "Error connecting to SQL server";
                 }
                 else {
-                    String query = "INSERT INTO Users (TeamID) VALUES (" + params[0]+ ")";
+                    String query = "INSERT INTO Users (RoomNumber, Score) VALUES (" + params[0]+ "," + 0 + ")";
                     Statement stm = con.createStatement();
                     stm.executeUpdate(query);
                     query = "SELECT TOP 1 * FROM Users ORDER BY ID DESC";
@@ -142,7 +130,42 @@ public class ChooseYourSide extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Integer i){
-            startNewPlayer = new Intent(ChooseYourSide.this, RedAnswerScreen.class);
+            startNewPlayer = new Intent(ChooseYourSide.this, PlayerScreen.class);
+            startNewPlayer.putExtra("ID",i);
+            ChooseYourSide.this.startActivity(startNewPlayer);
+        }
+    }
+
+    public class RegisterNewGameMaster extends AsyncTask<Integer, Integer, Integer>{
+        String msg;
+        @Override
+        protected Integer doInBackground(Integer... params){
+            int id = 0;
+            try{
+                Connection con = connectionClass.CONN();
+                if(con == null){
+                    msg = "Error connecting to SQL server";
+                }
+                else {
+                    String query = "INSERT INTO Users (RoomNumber) VALUES (" + params[0]+ ")";
+                    Statement stm = con.createStatement();
+                    stm.executeUpdate(query);
+                    query = "SELECT TOP 1 * FROM Users ORDER BY ID DESC";
+                    Statement state = con.createStatement();
+                    ResultSet rs = state.executeQuery(query);
+                    while(rs.next()){
+                        id = rs.getInt("ID");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return id;
+        }
+
+        @Override
+        protected void onPostExecute(Integer i){
+            startNewPlayer = new Intent(ChooseYourSide.this, GameMasterScreen.class);
             startNewPlayer.putExtra("ID",i);
             ChooseYourSide.this.startActivity(startNewPlayer);
         }
