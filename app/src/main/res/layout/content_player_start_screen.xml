@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.leah.edg_touch.CustomLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/content_player_start_screen"
+    tools:context="com.example.leah.edg_touch.PlayerStartScreen">
+
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/sp_top_border"/>
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/sp_top_border"
+        android:layout_above="@+id/sp_bottom_border"
+        android:id="@+id/sp_bg"/>
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/sp_bottom_border"
+        android:layout_alignParentBottom="true" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Room Number"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textAlignment="center"
+        android:id="@+id/playerRoomNumber"
+        android:layout_above="@+id/joinGame"
+        android:layout_marginBottom="30dp" />
+
+    <com.example.leah.edg_touch.CustomButton
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Join Room"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="@color/colorText"
+        android:textSize="16pt"
+        android:id="@+id/joinGame"
+        android:textAlignment="center"
+        android:layout_marginBottom="100dp"
+        android:layout_above="@+id/sp_bottom_border" />
+
+</com.example.leah.edg_touch.CustomLayout>

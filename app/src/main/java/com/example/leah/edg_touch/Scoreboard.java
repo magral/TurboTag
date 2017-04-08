@@ -10,7 +10,7 @@ public final class Scoreboard {
     private static String currentAnswer;
     private static int localID;
 
-    public Scoreboard(){
+    static {
         localID = 0;
         questionNumber = 0;
         currentAnswer = "";
@@ -70,12 +70,24 @@ public final class Scoreboard {
         }
     }
 
+    public static int checkPoints(int id){
+        for(int i = 0; i < players.size(); i++){
+            if(players.get(i).getUserID() == id){
+                return players.get(i).getPoints();
+            }
+        }
+        return -1;
+    }
+
     public static boolean isPlayersEmpty(){
         return players.size()==0 ? true : false;
     }
 
     public static int getGMIndex() {return index; }
     public static void updateGMIndex() { index++; }
+    public static void setGMIndex(int i){
+        index = i;
+    }
 
     public static void setLocalID(int id){
         localID = id;

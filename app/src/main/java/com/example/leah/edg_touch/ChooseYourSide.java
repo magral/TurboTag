@@ -29,7 +29,6 @@ public class ChooseYourSide extends AppCompatActivity {
     ImageView tp, bt, banner;
     CustomButton create, join;
     ConnectionDefinition connectionClass;
-    Intent startNewPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,16 +71,15 @@ public class ChooseYourSide extends AppCompatActivity {
 
         connectionClass = new ConnectionDefinition();
 
-        final Integer roomID = 1234;
-
         //Player creates a room
         create.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 EraseOldMembers eraseOldMembers = new EraseOldMembers();
                 eraseOldMembers.execute();
-                RegisterNewGameMaster register = new RegisterNewGameMaster();
-                register.execute(roomID);
+                Intent gm = new Intent(ChooseYourSide.this, GMStartScreen.class);
+                gm.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                ChooseYourSide.this.startActivity(gm);
             }
         });
 
@@ -89,82 +87,12 @@ public class ChooseYourSide extends AppCompatActivity {
         join.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                RegisterNewPlayer register = new RegisterNewPlayer();
-                register.execute(roomID);
+                Intent join = new Intent(ChooseYourSide.this, PlayerStartScreen.class);
+                join.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                ChooseYourSide.this.startActivity(join);
             }
         });
 
-    }
-
-    //Registers a new player to the database
-    public class RegisterNewPlayer extends AsyncTask<Integer, Integer, Integer>{
-        String msg;
-        @Override
-        protected Integer doInBackground(Integer... params){
-            int id = 0;
-            try{
-                Connection con = connectionClass.CONN();
-                if(con == null){
-                    msg = "Error connecting to SQL server";
-                }
-                else {
-                    String query = "INSERT INTO Users (RoomNumber, Score) VALUES (" + params[0]+ "," + 0 + ")";
-                    Statement stm = con.createStatement();
-                    stm.executeUpdate(query);
-                    query = "SELECT TOP 1 * FROM Users ORDER BY ID DESC";
-                    Statement state = con.createStatement();
-                    ResultSet rs = state.executeQuery(query);
-                    while(rs.next()){
-                        id = rs.getInt("ID");
-                    }
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            return id;
-        }
-
-        @Override
-        protected void onPostExecute(Integer i){
-            startNewPlayer = new Intent(ChooseYourSide.this, PlayerScreen.class);
-            startNewPlayer.putExtra("ID",i);
-            ChooseYourSide.this.startActivity(startNewPlayer);
-        }
-    }
-
-    public class RegisterNewGameMaster extends AsyncTask<Integer, Integer, Integer>{
-        String msg;
-        @Override
-        protected Integer doInBackground(Integer... params){
-            int id = 0;
-            try{
-                Connection con = connectionClass.CONN();
-                if(con == null){
-                    msg = "Error connecting to SQL server";
-                }
-                else {
-                    String query = "INSERT INTO Users (RoomNumber, Score) VALUES (" + params[0]+ "," + 0 + ")";
-                    Statement stm = con.createStatement();
-                    stm.executeUpdate(query);
-                    query = "SELECT TOP 1 * FROM Users ORDER BY ID DESC";
-                    Statement state = con.createStatement();
-                    ResultSet rs = state.executeQuery(query);
-                    while(rs.next()){
-                        id = rs.getInt("ID");
-                        Scoreboard.setLocalID(id);
-                    }
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            return id;
-        }
-
-        @Override
-        protected void onPostExecute(Integer i){
-            startNewPlayer = new Intent(ChooseYourSide.this, GameMasterScreen.class);
-            ChooseYourSide.this.startActivity(startNewPlayer);
-        }
     }
 
     public class EraseOldMembers extends AsyncTask<Void, Void, Void>{

@@ -3,4 +3,6 @@
     <string name="title_activity_question_choice">QuestionChoice</string>
     <string name="action_settings">Settings</string>
     <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_gmstart_screen">GMStartScreen</string>
+    <string name="title_activity_player_start_screen">PlayerStartScreen</string>
 </resources>

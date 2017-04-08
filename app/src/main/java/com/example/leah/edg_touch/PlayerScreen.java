@@ -12,6 +12,7 @@ import android.nfc.NfcEvent;
 import android.nfc.tech.NfcA;
 import android.nfc.tech.NfcF;
 import android.os.AsyncTask;
+import android.os.CountDownTimer;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
@@ -27,6 +28,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+
+import org.w3c.dom.Text;
 
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -56,13 +59,15 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     int ID = Scoreboard.getLocalID();
     //----------------------------------
     //Image Loading
-    CustomLayout bg;
-    CustomButton beam;
-    ImageView top, bt, ansbg;
-    EditText pInput;
+    private CustomLayout bg;
+    private CustomButton beam;
+    private ImageView top, bt, ansbg;
+    private TextView timer;
+    private EditText pInput;
     //View spaces
-    View rootView;
-    LinearLayout answerLayout;
+    private View rootView;
+    private LinearLayout answerLayout;
+    private CountDownTimer gameTimer;
     //----------------------------------
     // Socketing
     private Socket socket;
@@ -79,12 +84,12 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        connectionDefinition = new ConnectionDefinition();
         {
             try {
                 //socket = IO.socket("http://192.168.1.87:9001");
                 //System.out.println(());
-                socket = IO.socket("http://192.168.43.82:443");
+                socket = IO.socket("http://192.168.25.117:443");
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
@@ -93,9 +98,9 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             GetUsers gu = new GetUsers();
             gu.execute();
         }
-        setContentView(R.layout.activity_red_answer_screen);
-        answerLayout = (LinearLayout) findViewById(R.id.buttonLayoutRed);
+        setContentView(R.layout.activity_player_screen);
         //Load Images
+        timer = (TextView) findViewById(R.id.playerTimer);
         bg = (CustomLayout) findViewById(R.id.playerLayout);
         top = (ImageView) findViewById(R.id.top_border);
         bt = (ImageView) findViewById(R.id.bottom_border);
@@ -140,67 +145,32 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         nfcAdapter.setOnNdefPushCompleteCallback(this, this);
         //----------------------------------------------------
         //Sockets & DB Connections
-        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+        /*socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args){
                 System.out.println("Player connected");
-                //socket.emit("start game", socket);
             }
-        });
+        });*/
+        socket.on("game start", gameStart);
+        gameTimer = new CountDownTimer(15000, 1000) {
 
-        socket.on("transferGameMAster", transferGameMaster);
-        connectionDefinition = new ConnectionDefinition();
-        response = (TextView) findViewById(R.id.answerRed);
+            public void onTick(long millisUntilFinished) {
+                timer.setText(" " + (millisUntilFinished / 1000));
+            }
+
+            public void onFinish() {
+                timer.setText("Round Over!");
+            }
+        };
+        socket.on("transfer game master", transferGameMaster);
         //socket.on("get question", onGetQuestion );
         socket.connect();
-        beam.setOnClickListener(customOnClickListener(beam, pInput.getText().toString()));
+        beam.setOnClickListener(customOnClickListener());
     }
 
-    /*private Emitter.Listener onGetQuestion = new Emitter.Listener() {
+    public class GetUsers extends AsyncTask<Integer, Void, Void> {
         @Override
-        public void call(Object... args) {
-            try{
-                Connection con = connectionDefinition.CONN();
-                if(con == null){
-                    throw new Error("SQL Connection Error");
-                }
-                else{
-                    String query = "SELECT AnswerData FROM Users Where ID = "  + ID ;
-                    Statement stm = con.createStatement();
-                    ResultSet rs = stm.executeQuery(query);
-                    while(rs.next()){
-                        final String ans = rs.getString("AnswerData");
-                        final ArrayList<String> parsedAnswers = new ArrayList<String>(Arrays.asList(ans.split(",")));
-                        System.out.println(ans);
-                        PlayerScreen.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                System.out.println("SIZE OF PARSED ARRAY::::::::::::" + parsedAnswers.size());
-                                answerLayout.removeAllViews();
-                                for(int i = 0; i < parsedAnswers.size(); i++ ) {
-                                    CustomButton a = new CustomButton(getApplicationContext());
-                                    System.out.println("PARSED ANSWERS LIST::::: " + parsedAnswers);
-                                    a.setOnClickListener(customOnClickListener(a, parsedAnswers.get(i) ));
-                                    a.setText(parsedAnswers.get(i));
-                                    ActionBar.LayoutParams lp = new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, android.app.ActionBar.LayoutParams.WRAP_CONTENT);
-                                    Picasso.with(getApplicationContext()).load(R.drawable.beam_send_button).into(a);
-                                    answerLayout.addView(a, lp);
-                                }
-                                // response.setText(ans);
-                            }
-                        });
-                    }
-                }
-            } catch( SQLException e){
-                e.printStackTrace();
-            }
-        }
-    };
-*/
-    public class GetUsers extends AsyncTask<Integer, Integer, Integer> {
-        @Override
-        protected Integer doInBackground(Integer... params){
-            Integer Answerid = params[0];
+        protected Void doInBackground(Integer... params){
             try {
                 Connection con = connectionDefinition.CONN();
                 if(con == null){
@@ -220,18 +190,14 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             } catch (SQLException e){
                 e.printStackTrace();
             }
-            return Answerid;
+            return null;
         }
 
-        @Override
-        protected void onPostExecute(Integer p){
-
-        }
     }
-    View.OnClickListener customOnClickListener(final Button button, final String message)  {
+    View.OnClickListener customOnClickListener()  {
         return new View.OnClickListener() {
             public void onClick(View v) {
-                addMessage(v, message);
+                addMessage(v, pInput.getText().toString());
             }
         };
     }
@@ -245,6 +211,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
 
     public void addMessage(View view, String newMessage) {
         messagesToSendArray.add(newMessage);
+        System.out.println("STRING SENDING::: " + newMessage);
         Toast.makeText(this, "Added Message", Toast.LENGTH_LONG).show();
     }
 
@@ -277,6 +244,7 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
             System.out.println("no messages in message to send array");
             return null;
         }
+        socket.on("alert player correct", listenForCorrect);
         //socket.emit("player sent", true);
         NdefRecord[] recordsToAttach = createRecords();
         return new NdefMessage(recordsToAttach);
@@ -286,10 +254,8 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
         System.out.println("Create Records");
         NdefRecord[] records = new NdefRecord[messagesToSendArray.size() + 1];
         for(int i = 0; i < messagesToSendArray.size(); i++){
-            System.out.println(messagesToSendArray.get(i));
-            String sendMessage = messagesToSendArray.get(i) + ", " + ID;
-            byte[] payload = sendMessage.
-                    getBytes(Charset.forName("UTF-8"));
+            String sendMessage = messagesToSendArray.get(i);
+            byte[] payload = sendMessage.getBytes(Charset.forName("UTF-8"));
 
             NdefRecord record = NdefRecord.createMime("text/plain",payload);
             records[i] = record;
@@ -349,12 +315,34 @@ public class PlayerScreen extends AppCompatActivity implements NfcAdapter.OnNdef
     private Emitter.Listener transferGameMaster = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
+            Scoreboard.updateGMIndex();
+            Scoreboard.advanceNextQuestion();
+            if(Scoreboard.getGMIndex() >= Scoreboard.getPlayers().size()){
+                Scoreboard.setGMIndex(0);
+            }
             if(Scoreboard.getPlayers().get(Scoreboard.getGMIndex()).getUserID() == ID) {
-                Scoreboard.updateGMIndex();
-                Scoreboard.advanceNextQuestion();
                 Intent newGM = new Intent(PlayerScreen.this, GameMasterScreen.class);
                 PlayerScreen.this.startActivity(newGM);
             }
+        }
+    };
+
+    private Emitter.Listener listenForCorrect = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            Scoreboard.AddPoint(ID);
+            if(Scoreboard.checkPoints(ID) == 5){
+                pInput.setHint("YOU WON!");
+                //TODO: ACTUAL WIN SCREEN
+            }
+        }
+    };
+
+    private Emitter.Listener gameStart = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            System.out.println("Game Start");
+            gameTimer.start();
         }
     };
 

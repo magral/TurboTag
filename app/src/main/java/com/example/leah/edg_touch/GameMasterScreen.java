@@ -9,6 +9,7 @@ import android.nfc.NfcAdapter;
 import android.nfc.tech.NfcF;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Debug;
 import android.os.Parcelable;
 import android.os.StrictMode;
@@ -29,6 +30,7 @@ import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -49,7 +51,6 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 public class GameMasterScreen extends AppCompatActivity {
-    final private int MAX_QUESTIONS_IN_PACK = 10;
     NfcAdapter nfcAdapter;
 
     private ArrayList<String> answersReceived = new ArrayList<>();
@@ -59,8 +60,7 @@ public class GameMasterScreen extends AppCompatActivity {
     PendingIntent pendingIntent;
     IntentFilter[] intentFiltersArray;
 
-    TextView questionSpace;
-    CustomButton getQuestion;
+    TextView questionSpace, timer;
     CustomButton nextRound;
     CustomLayout bg;
     ImageView tp, bt, qbg;
@@ -70,17 +70,23 @@ public class GameMasterScreen extends AppCompatActivity {
     private Socket socket;
     int id;
 
-
+    CountDownTimer gameTimer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+        System.out.println("On Create Called");
         id = Scoreboard.getLocalID();
+        connectionDefinition = new ConnectionDefinition();
         //Populate user list if no user list exists
         if(Scoreboard.isPlayersEmpty()){
             GetUsers gu = new GetUsers();
             gu.execute();
         }
+        GetQuestions gq = new GetQuestions();
+        gq.execute(Scoreboard.getQuestionNumber());
+
+
         if(Build.VERSION.SDK_INT >= 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
@@ -89,19 +95,22 @@ public class GameMasterScreen extends AppCompatActivity {
             try {
                 //socket = IO.socket("http://192.168.1.87:9001");
                 //System.out.println(());
-                socket = IO.socket("http://192.168.43.82:443");
+                socket = IO.socket("http://192.168.25.117:443");
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
         }
         setContentView(R.layout.activity_game_master_screen);
         //Load Images
+        timer = (TextView) findViewById(R.id.masterTimer);
         bg = (CustomLayout) findViewById(R.id.q_bg);
         tp = (ImageView) findViewById(R.id.tpb);
         bt = (ImageView) findViewById(R.id.btb);
         qbg = (ImageView) findViewById(R.id.qspaceBg);
+        questionSpace = (TextView) findViewById(R.id.questionSpace);
+        //TODO: COMBINE THIS LISTENER WITH GET QUESTION
         nextRound = (CustomButton) findViewById(R.id.NextRound);
-        nextRound.setOnClickListener(nextRoundListener(nextRound));
+        Picasso.with(this).load(R.drawable.beam_send_button).into(nextRound);
         Picasso.with(this).load(R.drawable.question_answer_bg).fit().into(qbg);
         Picasso.with(this).load(R.drawable.top_border).fit().into(tp);
         Picasso.with(this).load(R.drawable.bottom_border).fit().into(bt);
@@ -128,43 +137,32 @@ public class GameMasterScreen extends AppCompatActivity {
             Toast.makeText(this, "NFC not available on this device",
                     Toast.LENGTH_SHORT).show();
         }
-        answersReceivedSpace = (TextView) findViewById(R.id.answersReceivedSpace);
 
+        answersReceivedSpace = (TextView) findViewById(R.id.answersReceivedSpace);
         updateTextViews();
-        //
+
         //Socketing
         answers = new ArrayList<>();
-        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+        /*socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
             @Override
             public void call(Object... args){
                 socket.emit("start game", socket);
             }
-        });
-        socket.on("updateQuestionNumber", updateQuestionNumber);
-        socket.on("get question", onGetQuestion);
-        socket.connect();
-        connectionDefinition = new ConnectionDefinition();
-        questionSpace = (TextView) findViewById(R.id.questionSpace);
-        getQuestion = (CustomButton) findViewById(R.id.getQuestion);
-        Picasso.with(this).load(R.drawable.beam_send_button).into(getQuestion);
-        getQuestion.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Integer packnum = Scoreboard.getQuestionNumber();
-                if(Scoreboard.getQuestionNumber() <= MAX_QUESTIONS_IN_PACK) {
-                    GetQuestions get = new GetQuestions();
-                    get.execute(packnum);
-                }
-                else{
-                    socket.off("get question");
-                    socket.disconnect();
-                    PlayerDefinition winner = Scoreboard.determineWinner();
-                    if(winner.getUserID() == id){
-                        System.out.println("This person won");
-                    }
-                }
+        });*/
+
+        gameTimer = new CountDownTimer(15000, 1000) {
+
+            public void onTick(long millisUntilFinished) {
+                timer.setText(" " + (millisUntilFinished / 1000));
             }
-        });
+
+            public void onFinish() {
+                timer.setText("Round Over!");
+                nextRound.setOnClickListener(nextRoundListener(nextRound));
+            }
+        };
+        socket.connect();
+        socket.emit("start game");
     }
     //update text views
     private  void updateTextViews() {
@@ -206,18 +204,20 @@ public class GameMasterScreen extends AppCompatActivity {
 
                 //Add each sent message to an array
                 for (NdefRecord record:attachedRecords) {
-                    String message = new String(record.getPayload());
+                    String playerAnswer = new String(record.getPayload());
                     //checking to make sure the package passed through refers to our application
-                    if (message.equals(getPackageName())) { continue; }
-                    String[] messages = message.split(",");
-                    String playerAnswer = messages[0];
-                    int playerID = Integer.parseInt(messages[1]);
+                    if (playerAnswer.equals(getPackageName())) { continue; }
                     answersReceivedSpace.setText(playerAnswer);
                     answersReceived.add(playerAnswer);
                     if(Scoreboard.compareAnswers(playerAnswer) == 0){
-                        Scoreboard.AddPoint(playerID);
-                        Scoreboard.AddPoint(id);
-                        Scoreboard.advanceNextQuestion();
+                        if(Scoreboard.checkPoints(id) == 5){
+                            questionSpace.setText("YOU WON!");
+                        }
+                        else {
+                            Scoreboard.AddPoint(id);
+                            socket.emit("alert player correct");
+                            Scoreboard.advanceNextQuestion();
+                        }
                     }
                 }
                 Toast.makeText(this, "Received " + answersReceived.size() +
@@ -265,10 +265,11 @@ public class GameMasterScreen extends AppCompatActivity {
                     String query = "SELECT Question FROM Questions Where QuestionNumber = " + params[0];
                     Statement stm = con.createStatement();
                     ResultSet rs = stm.executeQuery(query);
+                    gameTimer.start();
                     while(rs.next()){
                         q = rs.getString("Question");
+                        System.out.println("RECEIVED QUESTION:" + q);
                     }
-                    Scoreboard.advanceNextQuestion();
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -280,59 +281,12 @@ public class GameMasterScreen extends AppCompatActivity {
         protected void onPostExecute(String m){
             questionSpace.setText(m);
             Scoreboard.setCurrentAnswer(m);
-            //GetUsers getUsers = new GetUsers();
-            //getUsers.execute(n);
         }
     }
 
-    public class UpdateScores extends AsyncTask<Integer, String, String> {
-        String q;
-        Integer n;
+    public class GetUsers extends AsyncTask<Integer, Void, Void> {
         @Override
-        protected String doInBackground(Integer... params){
-            n = params[0];
-            try{
-                Connection con = connectionDefinition.CONN();
-                if(con == null){
-                    q = "Error connecting to SQL server";
-                }
-                else {
-                    String query = "UPDATE Question SET Score = Score + 1 WHERE id = " + params[0];
-                    Statement stm = con.createStatement();
-                    stm.executeQuery(query);
-                    if(Scoreboard.getQuestionNumber() >= 10) {
-                        String queryScores = "SELECT ID From Question Where Score = 10 ";
-                        Statement scoreStm = con.createStatement();
-                        ResultSet rs = scoreStm.executeQuery(queryScores);
-
-                        //Should only execute if a player has a winning score
-                        while (rs.next()) {
-                            int winnerId = Integer.parseInt(rs.getString("Question"));
-                            if(id == winnerId){
-                                System.out.println("I am the winner");
-                            }
-                        }}
-                    Scoreboard.advanceNextQuestion();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            return q;
-        }
-
-        @Override
-        protected void onPostExecute(String m){
-            questionSpace.setText(m);
-            Scoreboard.setCurrentAnswer(m);
-            //GetUsers getUsers = new GetUsers();
-            //getUsers.execute(n);
-        }
-    }
-
-    public class GetUsers extends AsyncTask<Integer, Integer, Integer> {
-        @Override
-        protected Integer doInBackground(Integer... params){
-            Integer Answerid = params[0];
+        protected Void doInBackground(Integer... params){
             try {
                 Connection con = connectionDefinition.CONN();
                 if(con == null){
@@ -352,43 +306,25 @@ public class GameMasterScreen extends AppCompatActivity {
             } catch (SQLException e){
                 e.printStackTrace();
             }
-            return Answerid;
-        }
-
-        @Override
-        protected void onPostExecute(Integer p){
-
+            return null;
         }
     }
 
-
-    private Emitter.Listener onGetQuestion = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject obj = (JSONObject) args[0];
-            boolean receive;
-            try {
-                receive = obj.getBoolean("success");
-                System.out.println(receive);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-
-    private Emitter.Listener updateQuestionNumber = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            Scoreboard.advanceNextQuestion();
-        }
-    };
 
     private void StartNextRound(){
-        Scoreboard.updateGMIndex();
-        Intent newPlayer = new Intent(GameMasterScreen.this, PlayerScreen.class);
-        newPlayer.putExtra("ID", id);
-        GameMasterScreen.this.startActivity(newPlayer);
+        if(Scoreboard.checkPoints(id) == 5) {
+            socket.off("get question");
+            socket.disconnect();
+        }
+        else {
+            Scoreboard.advanceNextQuestion();
+            Scoreboard.updateGMIndex();
+            Intent newPlayer = new Intent(GameMasterScreen.this, PlayerScreen.class);
+            socket.emit("transfer game master");
+            GameMasterScreen.this.startActivity(newPlayer);
+        }
     }
+
     //Onclick to start next round
     //In future this should be disabled unless round is over
     View.OnClickListener nextRoundListener(final Button button)  {

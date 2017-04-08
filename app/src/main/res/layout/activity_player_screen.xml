@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/playerLayout"
-    tools:context="com.example.leah.edg_touch.RedAnswerScreen">
+    tools:context="com.example.leah.edg_touch.PlayerScreen">
 
 
     <ImageView
@@ -15,15 +15,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/top_border"
+        android:layout_below="@+id/playerTimer"
         android:layout_above="@+id/bottom_border"
         android:id="@+id/playerBG"/>
-
-    <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_below="@+id/playerTextLayout"
-        android:id="@+id/bottom_border" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -52,5 +46,21 @@
             android:textAlignment="center"
             android:layout_below="@+id/playerInput"/>
     </LinearLayout>
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/bottom_border"
+        android:layout_alignParentBottom="true"/>
+
+    <TextView
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:id="@+id/playerTimer"
+        android:layout_below="@+id/top_border"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="16dp"
+        android:layout_marginEnd="16dp" />
 
 </com.example.leah.edg_touch.CustomLayout>
